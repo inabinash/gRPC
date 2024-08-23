@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package primes ;
+
+option go_package = "github.com/inabinash/grpc/primes/proto" ;
+
+service PrimeCalculator {
+    rpc CalculatePrimes (PrimeInput) returns (stream PrimeOutput) ;
+}
+
+message PrimeInput {
+    int32 input = 1;
+}
+
+message PrimeOutput {
+    int32 result =1;
+}

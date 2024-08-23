@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package calc ;
+
+option go_package = "github.com/inabinash/grpc/calc/proto" ;
+
+service Calculator {
+    rpc Calculate (CalcInput) returns (CalcResult) {} ;
+}
+
+message CalcInput {
+    int32 firstInput = 1;
+    int32 secondInput = 2;
+
+}
+
+message  CalcResult{
+    int32 result =1;
+}
