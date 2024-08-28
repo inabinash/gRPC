@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package avg ;
+
+option go_package = "github.com/inabinash/grpc/avg/proto" ;
+
+service AvgCalculator {
+    rpc CalculateAvg (stream AvgInput) returns (AvgOutput) ;
+}
+
+message AvgInput {
+    int32 input = 1;
+}
+
+message AvgOutput {
+    float result =1;
+}
