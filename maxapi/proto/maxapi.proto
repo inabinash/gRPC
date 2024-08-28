@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package maxapi ;
+
+option go_package = "github.com/inabinash/grpc/maxapi/proto" ;
+
+service MaxApiCalculator {
+    rpc CalculateMax (stream MaxApiInput) returns (stream MaxApiOutput) ;
+}
+
+message MaxApiInput {
+    int32 input = 1;
+}
+
+message MaxApiOutput {
+    int32 result =1;
+}
