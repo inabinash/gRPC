@@ -9,6 +9,7 @@ import (
 
 	pb "github.com/inabinash/grpc/greet/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Server struct {
@@ -35,12 +36,18 @@ func (s *Server) GreetManyTimes(in *pb.GreetRequest, stream pb.Greet_GreetManyTi
 
 func main() {
 	flag.Parse()
+	creds , err := credentials.NewServerTLSFromFile("server.crt", "server.pem");
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Print("creds :",creds);
+
 	lis, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
 		log.Fatalf("Failed to listen")
 	}
 	fmt.Printf("listning object ... %v\n", lis.Addr())
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.Creds(creds))
 	// fmt.Printf("grpc Server %v\n", s)
 	pb.RegisterGreetServer(s, &Server{})
 	if err := s.Serve(lis); err != nil {

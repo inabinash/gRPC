@@ -9,7 +9,8 @@ import (
 
 	pb "github.com/inabinash/grpc/greet/proto"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
+	// "google.golang.org/grpc/credentials/insecure"
 )
 
 func doGreet(c pb.GreetClient) {
@@ -46,11 +47,16 @@ func doGreetManyTimes(c pb.GreetClient) {
 	}
 }
 
-var addrs = "127.0.0.1:3000"
+var addrs = "localhost:3000"
 
 func main() {
+
+	creds, err := credentials.NewClientTLSFromFile("server.crt", "")
+	if err != nil {
+		log.Fatalf("Failed to load server certificate: %v", err)
+	}
 	// create grpc client
-	conn, err := grpc.NewClient(addrs, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(addrs, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalf("Error creating client: %v", err)
 	}
@@ -58,6 +64,6 @@ func main() {
 	defer conn.Close()
 
 	c := pb.NewGreetClient(conn)
-	// doGreet(c);
-	doGreetManyTimes(c)
+	doGreet(c);
+	// doGreetManyTimes(c)
 }

@@ -40,6 +40,7 @@ func doCalculate(c pb.MaxApiCalculatorClient) {
 			firstDone <- true
 			<-secondDone
 		}
+		stream.CloseSend();
 		close(firstDone)
 	}()
 	wg.Add(1)
