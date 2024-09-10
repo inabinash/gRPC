@@ -8,7 +8,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/inabinash/grpc/blog/proto"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -52,6 +54,8 @@ func (*Server) CreateBlog(ctx context.Context, in *pb.Blog) (*pb.BlogId, error) 
 	}
 	fmt.Println("-----------------data------------", data)
 	res, err := collection.InsertOne(ctx, data)
+	fmt.Println("respones generated ", res)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -60,7 +64,7 @@ func (*Server) CreateBlog(ctx context.Context, in *pb.Blog) (*pb.BlogId, error) 
 	}
 
 	oid, ok := res.InsertedID.(primitive.ObjectID)
-
+	fmt.Printf("oid : %v ok %v", oid, ok)
 	if !ok {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -72,6 +76,65 @@ func (*Server) CreateBlog(ctx context.Context, in *pb.Blog) (*pb.BlogId, error) 
 		Id: oid.Hex(),
 	}, nil
 }
+
+func (*Server) ReadBlog(ctx context.Context, in *pb.BlogId) (*pb.Blog, error) {
+	
+	oid ,err := primitive.ObjectIDFromHex(in.Id);
+	if err != nil {
+        return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Invalid Blog ID: %v", err))
+    }
+	result := &BlogItem{}
+
+	err = collection.FindOne(ctx, bson.M{"_id": oid}).Decode(result)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, status.Errorf(
+				codes.NotFound, fmt.Sprintf("Blog with this blog id not found %v", in.Id),
+			)
+		}
+		return nil, status.Errorf(codes.Internal, fmt.Sprintf("Error finding blog: %v", err))
+	}
+
+	fmt.Println("got the result :", result)
+	return DocumentToBlog(result), nil
+
+}
+
+func (*Server) ListBlog(in *empty.Empty,stream pb.BlogService_ListBlogServer) error {
+	cursor, err := collection.Find(context.Background(), bson.M{})
+    if err != nil {
+        return status.Errorf(codes.Internal, fmt.Sprintf("Error retrieving blogs: %v", err))
+    }
+    defer cursor.Close(context.Background())
+
+    // Iterate through the collection and stream each blog
+    for cursor.Next(context.Background()) {
+        result := &BlogItem{}
+        err := cursor.Decode(result)
+        if err != nil {
+            return status.Errorf(codes.Internal, fmt.Sprintf("Error decoding blog: %v", err))
+        }
+
+        // Convert BlogItem to Blog proto message
+        blog := DocumentToBlog(result)
+
+        // Send each blog over the stream
+        err = stream.Send(blog)
+        if err != nil {
+            return status.Errorf(codes.Internal, fmt.Sprintf("Error streaming blog: %v", err))
+        }
+    }
+
+    if err := cursor.Err(); err != nil {
+        return status.Errorf(codes.Internal, fmt.Sprintf("Cursor error: %v", err))
+    }
+
+
+	return nil;
+}
+
+
 func connectDB() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
